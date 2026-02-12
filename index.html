@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Widget</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <script type="text/javascript" charset="UTF-8">
+    (function() {
+    var tool_widget = document.createElement('script');
+    var container = "tool_widget-container";
+    var tool_id = "url-encode-string"; 
+    tool_widget.charset = "UTF-8";
+    tool_widget.type = 'text/javascript';
+    tool_widget.async = true;
+    tool_widget.src = `tool_wrapper.js?container=${container}&tool_id=${tool_id}`;
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(tool_widget);
+    })();
+    </script>
+    <div id="tool_widget-container"></div>
+  </body>
+</html>
