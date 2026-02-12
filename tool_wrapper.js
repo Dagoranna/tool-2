@@ -34,7 +34,8 @@ const scriptSrc = document.currentScript?.src;
   }
 
   async function loadFiles(globalPath, files) {
-    await Promise.all(files.map((f) => loadSingleFile(globalPath, f)));
+    if (files !== undefined)
+      await Promise.all(files.map((f) => loadSingleFile(globalPath, f)));
   }
 
   function loadSingleFile(globalPath, file) {
