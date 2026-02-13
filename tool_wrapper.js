@@ -10,9 +10,9 @@ const scriptSrc = document.currentScript?.src;
   const libUrl = "https://onlinetools.com/js/libs/";
   const bridgeUrl = "https://onlinetools.com/js/bridges/";
   const configUrl =
-    "https://tools-configs.netlify.app/site-onlinestringtools-config.json";
-  const htmlComponentUrl = "https://tools-configs.netlify.app/";
-  const cssUrl = "https://tools-configs.netlify.app/tool-css.css";
+    "https://service-files.vercel.app/site-onlinestringtools-config.json";
+  const htmlComponentUrl = "https://service-files.vercel.app/";
+  const cssUrl = "https://service-files.vercel.app/tool-css.css";
 
   const outerLibNames = {
     "grapheme-splitter": "grapheme-splitter.min",
@@ -25,6 +25,15 @@ const scriptSrc = document.currentScript?.src;
   let optionsWrapper;
   let panel;
   let inputsWrapper;
+
+  if (!String.prototype.format) {
+    String.prototype.format = function () {
+      var args = arguments;
+      return this.replace(/{(\d+)}/g, function (match, index) {
+        return typeof args[index] !== "undefined" ? args[index] : match;
+      });
+    };
+  }
 
   async function loadData(toolId) {
     const res = await fetch(configUrl);
@@ -81,7 +90,6 @@ const scriptSrc = document.currentScript?.src;
   await loadSingleFile(htmlComponentUrl, "html-component");
   includeFileCSS(cssUrl);
 
-  //затычка для сбора опций
   function createOptionsGetter(wrapper) {
     return {
       get() {
@@ -103,6 +111,7 @@ const scriptSrc = document.currentScript?.src;
           }
         });
 
+        console.log(result);
         return result;
       },
     };
@@ -116,16 +125,15 @@ const scriptSrc = document.currentScript?.src;
       type: "div",
       classes: "ext-0x03-inputs-wrapper",
       id: "ext-0x03-inputs-wrapper",
+      styles: {
+        width: "100%",
+        height: "auto",
+      },
     }).appendTo(panel);
 
     HtmlElement.create({
       type: "div",
-      styles: {
-        "font-size": "16px",
-        "font-weight": "bold",
-        "text-align": "center",
-        margin: "6px",
-      },
+      classes: "ext-0x03-tool-title",
       value: toolObj.name,
     }).appendTo(inputsWrapper);
 
@@ -178,37 +186,97 @@ const scriptSrc = document.currentScript?.src;
     }).appendTo(inputsWrapper);
 
     drawOptions(toolObj);
+
+    examplesWrapper = HtmlElement.create({
+      type: "div",
+      id: "ext-0x03-examples-wrapper",
+      classes: "ext-0x03-examples-wrapper",
+    }).appendTo(inputsWrapper);
+
+    if (toolObj.examples && toolObj.examples.length > 0) {
+      toolObj.examples.forEach((example) =>
+        examplesWrapper.append(drawExample(example)),
+      );
+    }
+  }
+
+  function drawExample(exObj) {
+    /*
+  {
+      "title": "String with HTML",
+      "description": "In this example, we HTML-escape a string that contains regular HTML code. Character &lt; gets converted to &amp;lt; (lt stands for less than) and character > gets converted to &gt; (gt stands for greater than). All other characters don't change as they're not special in HTML.",
+      "input": "<p>A paragraph a <u>day</u>, keeps the <u>doctor</u> away.</p>",
+      "output":"&lt;p&gt;A paragraph a &lt;u&gt;day&lt;/u&gt;, keeps the &lt;u&gt;doctor&lt;/u&gt; away.&lt;/p&gt;",
+      "options": {
+          "special-symbols" : true,
+          "decimal" : true,
+          "named": true
+      }
+  },  
+   */
+    const exampleElem = HtmlElement.create({
+      type: "div",
+      classes: "ext-0x03-example",
+      events: {
+        click: (e) => parseExample(e),
+      },
+    })
+      .addChild({
+        type: "div",
+        value: exObj.title,
+        classes: "ext-0x03-example-title",
+      })
+      .addChild({
+        type: "div",
+        value: exObj.description,
+        classes: "ext-0x03-example-description",
+      })
+      .addChild({
+        type: "div",
+        value: exObj.input,
+        classes: "ext-0x03-example-input",
+      })
+      .addChild({
+        type: "div",
+        value: "\u2193",
+        styles: {
+          "font-size": "20px",
+          "text-align": "center",
+        },
+      })
+      .addChild({
+        type: "div",
+        value: exObj.output,
+        classes: "ext-0x03-example-input",
+      });
+    return exampleElem;
   }
 
   function drawOptions(item) {
-    const bigSeparator = HtmlElement.create({
-      type: "div",
-      classes: "ext-0x03-options-separator",
-      styles: {
-        "margin-bottom": "12px",
-      },
-    });
-
-    const smallSeparator = HtmlElement.create({
-      type: "div",
-      classes: "ext-0x03-options-separator",
-      styles: {
-        "margin-bottom": "0px",
-      },
-    });
-
-    const decoderElem = HtmlElement.create({
-      type: "div",
-      id: `ext-0x03-options`,
-      styles: {
-        display: "flex",
-      },
-      classes: "ext-0x03-options-separate",
-    }).appendTo(optionsWrapper);
-
     if (item.options) {
       item.options.forEach((group, index) => {
         const groupName = group.group.toLowerCase().replace(/[ -]/g, "_");
+        const currentGroup = HtmlElement.create({
+          type: "div",
+          classes: "ext-0x03-option-group",
+          styles: {
+            display: "flex",
+            "flex-direction": "column",
+          },
+        })
+          .addChild({
+            type: "div",
+            classes: "ext-0x03-option-group-name",
+            //вставка стилей чтоб не дергать нетифай. Потом убрать в css
+            styles: {
+              "font-size": "16px",
+              "font-weight": "bold",
+              "text-align": "center",
+            },
+            value: group.group,
+          })
+          .appendTo(optionsWrapper);
+
         group.buttons.forEach((button) => {
           let currentElem;
           switch (button.type) {
@@ -247,12 +315,12 @@ const scriptSrc = document.currentScript?.src;
                   label_value: button.label,
                   label_classes: "ext-0x03-checkbox__label",
                 })
-                .appendTo(decoderElem);
+                .appendTo(currentGroup);
 
-              decoderElem.append(smallSeparator.clone());
+              //decoderElem.append(smallSeparator.clone());
 
               if (button.comment) {
-                decoderElem
+                currentGroup
                   .addAndReturnChild({
                     type: "div",
                     classes: "ext-0x03-text__supporting",
@@ -262,54 +330,62 @@ const scriptSrc = document.currentScript?.src;
                     value: button.comment,
                   });
 
-                decoderElem.append(smallSeparator.clone());
+                //decoderElem.append(smallSeparator.clone());
               }
 
               break;
-            /* case "radio":
-            currentElem = HtmlElement.create({
-              type: "div",
-              classes: "ext-0x03-radio",
-            })
-              .addChildWithLabel({
-                type: "input",
-                attrs: {
-                  type: "radio",
-                  name: `ext-0x03-${decoderId}-${groupName}`,
-                },
-                events: {
-                  change: () => decodeInputToOutput(),
-                },
-                id: `ext-0x03-${decoderId}-${button.name}`,
-                classes: "ext-0x03-radio__input",
-                value: button.value,
-                label_value: button.label,
-                label_classes: "ext-0x03-radio__label",
+            case "radio":
+              /*
+              <input class="radio__input input-option" 
+              type="radio" 
+              checked="" 
+              id="option-all-symbols-e8a8e3d8" 
+              required="" 
+              name="option-group-e8a8e3d8-0" 
+              data-index="all-symbols" 
+              data-action="radio" 
+              data-type="options" 
+              data-clicked="0">
+              */
+              currentElem = HtmlElement.create({
+                type: "div",
+                classes: "ext-0x03-radio",
               })
-              .appendTo(decoderElem);
-
-            if (button.tooltip) {
-              currentElem.setAttr("data-tooltip", button.tooltip);
-            }
-
-            decoderElem.append(smallSeparator.clone());
-
-            if (button.comment) {
-              decoderElem
-                .addAndReturnChild({
-                  type: "div",
-                  classes: "ext-0x03-text__supporting",
+                .addChildWithLabel({
+                  type: "input",
+                  attrs: {
+                    type: "radio",
+                    name: `ext-0x03-${groupName}`,
+                    "data-index": button.name,
+                    "data-action": "radio",
+                    "data-type": "options",
+                    "data-clicked": "0",
+                  },
+                  events: {
+                    change: () => decodeInputToOutput(),
+                  },
+                  id: `ext-0x03-${button.name}`,
+                  classes: "ext-0x03-radio__input",
+                  value: button.value,
+                  label_value: button.label,
+                  label_classes: "ext-0x03-radio__label",
                 })
-                .addChild({
-                  type: "span",
-                  value: button.comment,
-                });
+                .appendTo(currentGroup);
 
-              decoderElem.append(smallSeparator.clone());
-            }
+              if (button.comment) {
+                currentGroup
+                  .addAndReturnChild({
+                    type: "div",
+                    classes: "ext-0x03-text__supporting",
+                  })
+                  .addChild({
+                    type: "span",
+                    value: button.comment,
+                  });
+              }
 
-            break;
-          case "text":
+              break;
+            /*case "text":
             currentElem = HtmlElement.create({
               type: "div",
               classes: "ext-0x03-text-field",
@@ -421,8 +497,6 @@ const scriptSrc = document.currentScript?.src;
             }*/
           }
         });
-        if (index < item.options.length - 1)
-          decoderElem.append(bigSeparator.clone());
       });
     }
   }
