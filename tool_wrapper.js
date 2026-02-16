@@ -25,6 +25,7 @@ const scriptSrc = document.currentScript?.src;
   let optionsWrapper;
   let panel;
   let inputsWrapper;
+  let exampleNumber = 0;
 
   if (!String.prototype.format) {
     String.prototype.format = function () {
@@ -55,7 +56,6 @@ const scriptSrc = document.currentScript?.src;
         fileName = outerLibNames[fileName];
       }
       currentScript.src = `${globalPath}${fileName}.js`;
-      console.log("currentScript.src = " + currentScript.src);
       currentScript.async = false;
       currentScript.onload = () => resolve();
       currentScript.onerror = () =>
@@ -111,7 +111,6 @@ const scriptSrc = document.currentScript?.src;
           }
         });
 
-        console.log(result);
         return result;
       },
     };
@@ -201,6 +200,7 @@ const scriptSrc = document.currentScript?.src;
   }
 
   function drawExample(exObj) {
+    exampleNumber++;
     /*
   {
       "title": "String with HTML",
@@ -247,9 +247,247 @@ const scriptSrc = document.currentScript?.src;
       .addChild({
         type: "div",
         value: exObj.output,
-        classes: "ext-0x03-example-input",
+        classes: "ext-0x03-example-output",
       });
+
+    if (exObj.options) {
+      exampleElem
+        .addChild({
+          type: "div",
+          value: "Required options",
+          styles: {
+            "font-size": "18px",
+            "font-weight": "bold",
+          },
+        })
+        .addChild({
+          type: "div",
+          value:
+            "These options will be used automatically if you select this example.",
+          styles: {
+            "font-size": "16px",
+          },
+        });
+
+      Object.keys(exObj.options).forEach((option) => {
+        let attr = `[data-index="${option}"]`;
+        let buttonElem = document
+          .querySelector(attr)
+          .parentElement.cloneNode(true);
+        let button = buttonElem.querySelector("input");
+        let label = buttonElem.querySelector("label");
+        button.setAttribute("name", `${button.name}_${exampleNumber}`);
+        button.disabled = true;
+        button.id = `${button.id}_${exampleNumber}`;
+        label.setAttribute("for", button.id);
+        let buttonHtmlElem = HtmlElement.create(button);
+        buttonHtmlElem.setValue(exObj.options[option]);
+        exampleElem.element.append(buttonElem);
+      });
+    }
     return exampleElem;
+  }
+
+  function parseExample(e) {
+    const example = e.currentTarget;
+    const exInput = example.querySelector(
+      ".ext-0x03-example-input",
+    ).textContent;
+    inputField.setValue(exInput);
+    const exOutput = example.querySelector(
+      ".ext-0x03-example-output",
+    ).textContent;
+    outputField.setValue(exOutput);
+
+    const exOptions = example.querySelectorAll('[data-type="options"]');
+    console.log(exOptions);
+    const realOptionsList = document.querySelector(".ext-0x03-options-wrapper");
+    exOptions.forEach((option) => {
+      const dataSelector = `[data-type="options"][data-index="${option.getAttribute("data-index")}"]`;
+      const realOption = realOptionsList.querySelector(dataSelector);
+      if (
+        option.getAttribute("data-action") === "radio" ||
+        option.getAttribute("data-action") === "checkbox"
+      ) {
+        realOption.checked = option.checked;
+      } else if (option.getAttribute("data-action") === "text") {
+        realOption.value = option.value;
+      }
+    });
+
+    inputField.element.focus();
+  }
+
+  function createCheckbox(button, currentGroup, groupName) {
+    /*
+      <input class="checkbox__input input-option" 
+      type="checkbox" 
+      id="option-encode-all-chars-35b6cf1f" 
+      required="" 
+      name="option-group-35b6cf1f-0" 
+      data-index="encode-all-chars" 
+      data-action="checkbox" 
+      data-type="options" 
+      data-clicked="0">
+    */
+    let currentElem = HtmlElement.create({
+      type: "div",
+      classes: "ext-0x03-checkbox",
+    })
+      .addChildWithLabel({
+        type: "input",
+        attrs: {
+          type: "checkbox",
+          name: `ext-0x03-${groupName}`,
+          "data-index": button.name,
+          "data-action": "checkbox",
+          "data-type": "options",
+          "data-clicked": "0",
+        },
+        events: {
+          change: () => decodeInputToOutput(),
+        },
+        id: `ext-0x03-${button.name}`,
+        classes: "ext-0x03-checkbox__input",
+        value: button.value,
+        label_value: button.label,
+        label_classes: "ext-0x03-checkbox__label",
+      })
+      .appendTo(currentGroup);
+
+    if (button.comment) {
+      HtmlElement.create({
+        type: "div",
+        classes: "ext-0x03-text__supporting",
+      })
+        .addChild({
+          type: "span",
+          value: button.comment,
+        })
+        .appendTo(currentGroup);
+    }
+
+    return currentElem;
+  }
+  function createRadio(button, currentGroup, groupName) {
+    /*
+      <input class="radio__input input-option" 
+      type="radio" 
+      checked="" 
+      id="option-all-symbols-e8a8e3d8" 
+      required="" 
+      name="option-group-e8a8e3d8-0" 
+      data-index="all-symbols" 
+      data-action="radio" 
+      data-type="options" 
+      data-clicked="0">
+    */
+    let currentElem = HtmlElement.create({
+      type: "div",
+      classes: "ext-0x03-radio",
+    })
+      .addChildWithLabel({
+        type: "input",
+        attrs: {
+          type: "radio",
+          name: `ext-0x03-${groupName}`,
+          "data-index": button.name,
+          "data-action": "radio",
+          "data-type": "options",
+          "data-clicked": "0",
+        },
+        events: {
+          change: () => decodeInputToOutput(),
+        },
+        id: `ext-0x03-${button.name}`,
+        classes: "ext-0x03-radio__input",
+        value: button.value,
+        label_value: button.label,
+        label_classes: "ext-0x03-radio__label",
+      })
+      .appendTo(currentGroup);
+
+    if (button.comment) {
+      currentGroup
+        .addAndReturnChild({
+          type: "div",
+          classes: "ext-0x03-text__supporting",
+        })
+        .addChild({
+          type: "span",
+          value: button.comment,
+        });
+    }
+
+    return currentElem;
+  }
+
+  function createText(button, currentGroup, groupName) {
+    /*
+    <input class="text-field__input input-option" 
+    type="text" 
+    value="76" 
+    placeholder=" " 
+    id="option-base64-split-length-3a1dfbc6" 
+    required="" 
+    name="option-group-3a1dfbc6-0" 
+    data-index="base64-split-length" 
+    data-action="input" 
+    data-type="options" 
+    data-clicked="0">   
+   */
+
+    let currentElem = HtmlElement.create({
+      type: "div",
+      classes: "ext-0x03-text-field",
+    })
+      .addChild({
+        type: "input",
+        events: {
+          change: () => decodeInputToOutput(),
+          input: () => decodeInputToOutput(),
+        },
+        id: `ext-0x03-${button.name}`,
+        name: `ext-0x03-${groupName}`,
+        classes: "ext-0x03-text-field__input",
+        attrs: {
+          placeholder: " ",
+          "data-index": button.name,
+          "data-action": "text",
+          "data-type": "options",
+          "data-clicked": "0",
+        },
+        value: button.value,
+      })
+      .appendTo(currentGroup);
+
+    HtmlElement.create({
+      type: "label",
+      classes: "ext-0x03-text-field__input__placeholder",
+      attrs: {
+        for: `ext-0x03-${button.name}`,
+      },
+    })
+      .addChild({
+        type: "div",
+        classes: "ext-0x03-text-field__input__placeholder__label",
+        value: button.label,
+      })
+      .appendTo(currentElem);
+
+    if (button.comment) {
+      currentGroup
+        .addAndReturnChild({
+          type: "div",
+          classes: "ext-0x03-text__supporting",
+        })
+        .addChild({
+          type: "span",
+          value: button.comment,
+        });
+    }
+
+    return currentElem;
   }
 
   function drawOptions(item) {
@@ -259,186 +497,25 @@ const scriptSrc = document.currentScript?.src;
         const currentGroup = HtmlElement.create({
           type: "div",
           classes: "ext-0x03-option-group",
-          styles: {
-            display: "flex",
-            "flex-direction": "column",
-          },
         })
           .addChild({
             type: "div",
             classes: "ext-0x03-option-group-name",
-            //вставка стилей чтоб не дергать нетифай. Потом убрать в css
-            styles: {
-              "font-size": "16px",
-              "font-weight": "bold",
-              "text-align": "center",
-            },
             value: group.group,
           })
           .appendTo(optionsWrapper);
 
         group.buttons.forEach((button) => {
-          let currentElem;
           switch (button.type) {
             case "checkbox":
-              /*
-            <input class="checkbox__input input-option" 
-            type="checkbox" 
-            id="option-encode-all-chars-35b6cf1f" 
-            required="" 
-            name="option-group-35b6cf1f-0" 
-            data-index="encode-all-chars" 
-            data-action="checkbox" 
-            data-type="options" 
-            data-clicked="0">
-            */
-              currentElem = HtmlElement.create({
-                type: "div",
-                classes: "ext-0x03-checkbox",
-              })
-                .addChildWithLabel({
-                  type: "input",
-                  attrs: {
-                    type: "checkbox",
-                    name: `ext-0x03-${groupName}`,
-                    "data-index": button.name,
-                    "data-action": "checkbox",
-                    "data-type": "options",
-                    "data-clicked": "0",
-                  },
-                  events: {
-                    change: () => decodeInputToOutput(),
-                  },
-                  id: `ext-0x03-${button.name}`,
-                  classes: "ext-0x03-checkbox__input",
-                  value: button.value,
-                  label_value: button.label,
-                  label_classes: "ext-0x03-checkbox__label",
-                })
-                .appendTo(currentGroup);
-
-              //decoderElem.append(smallSeparator.clone());
-
-              if (button.comment) {
-                currentGroup
-                  .addAndReturnChild({
-                    type: "div",
-                    classes: "ext-0x03-text__supporting",
-                  })
-                  .addChild({
-                    type: "span",
-                    value: button.comment,
-                  });
-
-                //decoderElem.append(smallSeparator.clone());
-              }
-
+              createCheckbox(button, currentGroup, groupName);
               break;
             case "radio":
-              /*
-              <input class="radio__input input-option" 
-              type="radio" 
-              checked="" 
-              id="option-all-symbols-e8a8e3d8" 
-              required="" 
-              name="option-group-e8a8e3d8-0" 
-              data-index="all-symbols" 
-              data-action="radio" 
-              data-type="options" 
-              data-clicked="0">
-              */
-              currentElem = HtmlElement.create({
-                type: "div",
-                classes: "ext-0x03-radio",
-              })
-                .addChildWithLabel({
-                  type: "input",
-                  attrs: {
-                    type: "radio",
-                    name: `ext-0x03-${groupName}`,
-                    "data-index": button.name,
-                    "data-action": "radio",
-                    "data-type": "options",
-                    "data-clicked": "0",
-                  },
-                  events: {
-                    change: () => decodeInputToOutput(),
-                  },
-                  id: `ext-0x03-${button.name}`,
-                  classes: "ext-0x03-radio__input",
-                  value: button.value,
-                  label_value: button.label,
-                  label_classes: "ext-0x03-radio__label",
-                })
-                .appendTo(currentGroup);
-
-              if (button.comment) {
-                currentGroup
-                  .addAndReturnChild({
-                    type: "div",
-                    classes: "ext-0x03-text__supporting",
-                  })
-                  .addChild({
-                    type: "span",
-                    value: button.comment,
-                  });
-              }
-
+              createRadio(button, currentGroup, groupName);
               break;
-            /*case "text":
-            currentElem = HtmlElement.create({
-              type: "div",
-              classes: "ext-0x03-text-field",
-            })
-              .addChild({
-                type: "input",
-                events: {
-                  change: () => decodeInputToOutput(),
-                },
-                id: `ext-0x03-${decoderId}-${button.name}`,
-                name: `ext-0x03-${decoderId}-${groupName}`,
-                classes: "ext-0x03-text-field__input",
-                attrs: {
-                  placeholder: " ",
-                },
-                value: button.value,
-              })
-              .appendTo(decoderElem);
-
-            if (button.tooltip) {
-              currentElem.setAttr("data-tooltip", button.tooltip);
-            }
-
-            HtmlElement.create({
-              type: "label",
-              classes: "ext-0x03-text-field__input__placeholder",
-              attrs: {
-                for: `ext-0x03-${decoderId}-${button.name}`,
-              },
-            })
-              .addChild({
-                type: "div",
-                classes: "ext-0x03-text-field__input__placeholder__label",
-                value: button.label,
-              })
-              .appendTo(currentElem);
-
-            decoderElem.append(smallSeparator.clone());
-
-            if (button.comment) {
-              decoderElem
-                .addAndReturnChild({
-                  type: "div",
-                  classes: "ext-0x03-text__supporting",
-                })
-                .addChild({
-                  type: "span",
-                  value: button.comment,
-                });
-
-              decoderElem.append(smallSeparator.clone());
-            }
-            break;
+            case "text":
+              createText(button, currentGroup, groupName);
+              break; /*
           case "select":
             currentElem = HtmlElement.create({
               type: "div",
@@ -507,18 +584,13 @@ const scriptSrc = document.currentScript?.src;
 
   function decodeInputToOutput() {
     if (!bridge || !inputField || !outputField) return;
-
+    const inputValue = inputField.getValue() || "";
+    let result;
     try {
-      const inputValue = inputField.getValue
-        ? inputField.getValue()
-        : inputField.value;
-
-      const result = bridge.call(runtimeContext, inputValue || "");
-
-      if (outputField.setValue) outputField.setValue(result ?? "");
-      else outputField.value = result ?? "";
-    } catch (e) {
-      console.error("Tool execution error", e);
+      result = bridge.call(runtimeContext, inputValue);
+      outputField.setValue(result);
+    } catch (err) {
+      outputField.setValue(`Bridge execution failed: ${err}`);
     }
   }
 
