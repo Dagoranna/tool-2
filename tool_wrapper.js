@@ -65,6 +65,8 @@ const scriptSrc = document.currentScript?.src;
   }
 
   var toolObj = await loadData(toolId);
+  if (!toolObj) return;
+
   await loadFiles(libUrl, toolObj.libraries);
   await loadSingleFile(bridgeUrl, toolObj.bridge);
 
@@ -81,7 +83,11 @@ const scriptSrc = document.currentScript?.src;
     throw new Error("Unsupported bridge format: " + name);
   }
 
-  bridge = resolveBridgeExecutor(toolObj.bridge);
+  try {
+    bridge = resolveBridgeExecutor(toolObj.bridge);
+  } catch (err) {
+    console.log(`Bridge resolve failed: ${err}`);
+  }
 
   runtimeContext = {
     options: null,
@@ -300,17 +306,14 @@ const scriptSrc = document.currentScript?.src;
     outputField.setValue(exOutput);
 
     const exOptions = example.querySelectorAll('[data-type="options"]');
-    console.log(exOptions);
     const realOptionsList = document.querySelector(".ext-0x03-options-wrapper");
     exOptions.forEach((option) => {
       const dataSelector = `[data-type="options"][data-index="${option.getAttribute("data-index")}"]`;
       const realOption = realOptionsList.querySelector(dataSelector);
-      if (
-        option.getAttribute("data-action") === "radio" ||
-        option.getAttribute("data-action") === "checkbox"
-      ) {
+      const optionData = option.dataset;
+      if (optionData.action === "radio" || optionData.action === "checkbox") {
         realOption.checked = option.checked;
-      } else if (option.getAttribute("data-action") === "text") {
+      } else if (optionData.action === "text") {
         realOption.value = option.value;
       }
     });
